@@ -5,7 +5,7 @@ import os
 from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import yaml
 
@@ -28,9 +28,9 @@ class Settings:
     api_key: str = ""
     operator_keys: dict[str, str] = field(default_factory=dict)
     policy_path: Path = DEFAULT_POLICY
-    redis_url: Optional[str] = None
+    redis_url: str | None = None
     audit_db: Path = Path("data/audit.db")
-    signing_key: Optional[str] = None
+    signing_key: str | None = None
     dev_mode: bool = False
     etherscan_api_key: str = ""
     trongrid_api_key: str = ""
@@ -44,7 +44,7 @@ class Settings:
     log_level: str = "INFO"
 
     @classmethod
-    def from_env(cls) -> "Settings":
+    def from_env(cls) -> Settings:
         e = os.getenv
         return cls(
             api_key=e("SENTINEL_API_KEY", ""),

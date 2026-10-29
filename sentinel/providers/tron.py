@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Optional
 
 import httpx
 
@@ -12,7 +11,7 @@ TRONGRID = "https://api.trongrid.io/v1/accounts/{address}/transactions"
 
 
 class TronGridProvider(ChainDataProvider):
-    def __init__(self, api_key: str = "", client: Optional[httpx.Client] = None):
+    def __init__(self, api_key: str = "", client: httpx.Client | None = None):
         headers = {"TRON-PRO-API-KEY": api_key} if api_key else {}
         self.client = client or httpx.Client(timeout=4.0, headers=headers)
 

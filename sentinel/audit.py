@@ -12,7 +12,7 @@ import sqlite3
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 GENESIS = "0" * 64
 
@@ -34,8 +34,8 @@ CREATE INDEX IF NOT EXISTS idx_audit_decision ON audit(decision);
 """
 
 
-def _row_hash(prev: str, ts: str, event: str, request_id: Optional[str], decision: Optional[str],
-              risk: Optional[float], actor: Optional[str], payload: str) -> str:
+def _row_hash(prev: str, ts: str, event: str, request_id: str | None, decision: str | None,
+              risk: float | None, actor: str | None, payload: str) -> str:
     material = json.dumps([prev, ts, event, request_id, decision, risk, actor, payload],
                           separators=(",", ":"), ensure_ascii=False)
     return hashlib.sha256(material.encode()).hexdigest()
@@ -55,9 +55,9 @@ class AuditLog:
         row = self._db.execute("SELECT hash FROM audit ORDER BY id DESC LIMIT 1").fetchone()
         return row[0] if row else GENESIS
 
-    def append(self, event: str, payload: dict[str, Any], request_id: Optional[str] = None,
-               decision: Optional[str] = None, risk: Optional[float] = None,
-               actor: Optional[str] = None) -> str:
+    def append(self, event: str, payload: dict[str, Any], request_id: str | None = None,
+               decision: str | None = None, risk: float | None = None,
+               actor: str | None = None) -> str:
         ts = datetime.now(timezone.utc).isoformat()
         body = json.dumps(payload, sort_keys=True, ensure_ascii=False, default=str)
         with self._lock:
@@ -70,7 +70,7 @@ class AuditLog:
             )
         return h
 
-    def recent(self, limit: int = 100, decision: Optional[str] = None) -> list[dict[str, Any]]:
+    def recent(self, limit: int = 100, decision: str | None = None) -> list[dict[str, Any]]:
         q = "SELECT id,ts,event,request_id,decision,risk,actor,payload FROM audit"
         args: list[Any] = []
         if decision:
@@ -85,7 +85,7 @@ class AuditLog:
             for r in rows
         ]
 
-    def stats(self, since_iso: Optional[str] = None) -> dict[str, int]:
+    def stats(self, since_iso: str | None = None) -> dict[str, int]:
         q = "SELECT decision, COUNT(*) FROM audit WHERE event = 'screen'"
         args: list[Any] = []
         if since_iso:
@@ -94,7 +94,7 @@ class AuditLog:
         q += " GROUP BY decision"
         return {d: n for d, n in self._db.execute(q, args).fetchall() if d}
 
-    def verify_chain(self) -> tuple[bool, Optional[int]]:
+    def verify_chain(self) -> tuple[bool, int | None]:
         """Returns (ok, first_broken_id)."""
         prev = GENESIS
         cur = self._db.execute(

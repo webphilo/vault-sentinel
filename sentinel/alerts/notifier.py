@@ -5,7 +5,7 @@ import hashlib
 import hmac
 import json
 import logging
-from typing import Any, Optional
+from typing import Any
 
 import httpx
 
@@ -34,7 +34,7 @@ class Notifier:
         s = self.s
         return bool((s.telegram_bot_token and s.telegram_chat_id) or s.slack_webhook_url or s.webhook_url)
 
-    async def send(self, text: str, event: Optional[dict[str, Any]] = None) -> None:
+    async def send(self, text: str, event: dict[str, Any] | None = None) -> None:
         log.warning(text.replace("\n", " | "))
         if not self.enabled:
             return

@@ -8,7 +8,7 @@
 """
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 import httpx
 
@@ -24,8 +24,8 @@ class WithdrawalBlocked(Exception):
 
 
 class SentinelClient:
-    def __init__(self, base_url: str, api_key: str, public_key: Optional[str] = None,
-                 timeout: float = 5.0, client: Optional[httpx.Client] = None):
+    def __init__(self, base_url: str, api_key: str, public_key: str | None = None,
+                 timeout: float = 5.0, client: httpx.Client | None = None):
         self.http = client or httpx.Client(base_url=base_url.rstrip("/"), timeout=timeout,
                                            headers={"X-API-Key": api_key})
         self._public_key = public_key
@@ -38,7 +38,7 @@ class SentinelClient:
         return self._public_key
 
     def screen(self, request: WithdrawalRequest | dict[str, Any],
-               wallet_balance_usd: Optional[float] = None) -> Verdict:
+               wallet_balance_usd: float | None = None) -> Verdict:
         req = request if isinstance(request, WithdrawalRequest) else WithdrawalRequest(**request)
         r = self.http.post("/v1/screen", json={"request": req.model_dump(mode="json"),
                                                "wallet_balance_usd": wallet_balance_usd})
@@ -46,7 +46,7 @@ class SentinelClient:
         return Verdict(**r.json())
 
     def require_allow(self, request: WithdrawalRequest | dict[str, Any],
-                      wallet_balance_usd: Optional[float] = None) -> Attestation:
+                      wallet_balance_usd: float | None = None) -> Attestation:
         """Screen and return a verified attestation, or raise WithdrawalBlocked.
 
         Any transport error also raises: the caller must treat it as BLOCK (fail-closed).

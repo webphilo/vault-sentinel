@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Optional
 
 from ..models import Signal, WithdrawalRequest
 from ..providers.base import AddressProfile
@@ -12,8 +11,8 @@ from ..providers.base import AddressProfile
 @dataclass
 class Context:
     request: WithdrawalRequest
-    wallet_balance_usd: Optional[float]
-    profile: Optional[AddressProfile]
+    wallet_balance_usd: float | None
+    profile: AddressProfile | None
     now: float  # unix seconds
 
     @property
@@ -25,7 +24,7 @@ class Context:
         return self.request.source_wallet.lower()
 
     @property
-    def dest_age_hours(self) -> Optional[float]:
+    def dest_age_hours(self) -> float | None:
         p = self.profile
         if p is None or not p.available or p.first_seen is None:
             return None
@@ -39,7 +38,7 @@ class Detector(ABC):
     def evaluate(self, ctx: Context) -> list[Signal]:
         """Return risk signals. Must not mutate state that depends on the final decision."""
 
-    def on_allowed(self, ctx: Context) -> None:
+    def on_allowed(self, ctx: Context) -> None:  # noqa: B027 - optional hook
         """Called once the withdrawal is approved (ALLOW or approved HOLD)."""
 
     def signal(self, score: float, reason: str, hard: bool = False) -> Signal:

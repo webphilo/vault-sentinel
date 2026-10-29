@@ -9,7 +9,6 @@ import hmac
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Optional
 
 from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.responses import FileResponse, Response
@@ -31,7 +30,7 @@ DASHBOARD = Path(__file__).resolve().parent / "dashboard" / "index.html"
 # --------------------------------------------------------------------------- schemas
 class ScreenBody(BaseModel):
     request: WithdrawalRequest
-    wallet_balance_usd: Optional[float] = Field(None, ge=0)
+    wallet_balance_usd: float | None = Field(None, ge=0)
 
 
 class WalletBody(BaseModel):
@@ -42,7 +41,7 @@ class WalletBody(BaseModel):
 class FreezeBody(BaseModel):
     request: WithdrawalRequest
     exchange_name: str = "<EXCHANGE>"
-    tx_hash: Optional[str] = None
+    tx_hash: str | None = None
 
 
 # --------------------------------------------------------------------------- auth
@@ -77,7 +76,7 @@ def require_any(request: Request, x_api_key: str = Header(..., alias="X-API-Key"
 
 
 # --------------------------------------------------------------------------- app
-def create_app(settings: Optional[Settings] = None, engine: Optional[SentinelEngine] = None) -> FastAPI:
+def create_app(settings: Settings | None = None, engine: SentinelEngine | None = None) -> FastAPI:
     settings = settings or get_settings()
 
     @asynccontextmanager
@@ -150,7 +149,7 @@ def create_app(settings: Optional[Settings] = None, engine: Optional[SentinelEng
         try:
             v = _engine(request).approve_hold(request_id, operator)
         except KeyError:
-            raise HTTPException(status_code=404, detail="hold not found or expired")
+            raise HTTPException(status_code=404, detail="hold not found or expired") from None
         if v is None:
             return {"status": "pending", "approved_by": operator}
         return {"status": "final", "verdict": v.model_dump(mode="json")}
@@ -171,7 +170,9 @@ def create_app(settings: Optional[Settings] = None, engine: Optional[SentinelEng
         eng.breaker.trip(body.wallet, f"{body.reason} (by {who})")
         if eng.audit:
             eng.audit.append("breaker_trip", body.model_dump(), actor=who)
-        await request.app.state.notifier.send(f"[VaultSentinel] CIRCUIT BREAKER tripped for {body.wallet} by {who}: {body.reason}")
+        await request.app.state.notifier.send(
+            f"[VaultSentinel] CIRCUIT BREAKER tripped for {body.wallet} by {who}: {body.reason}"
+        )
         return {"tripped": True, "wallet": body.wallet.lower()}
 
     @app.post("/v1/breaker/reset", tags=["circuit breaker"])
@@ -190,7 +191,7 @@ def create_app(settings: Optional[Settings] = None, engine: Optional[SentinelEng
         return draft
 
     @app.get("/v1/audit", tags=["audit"])
-    def audit(request: Request, limit: int = Query(100, le=1000), decision: Optional[Decision] = None,
+    def audit(request: Request, limit: int = Query(100, le=1000), decision: Decision | None = None,
               _: str = Depends(require_operator)) -> dict:
         eng = _engine(request)
         if not eng.audit:

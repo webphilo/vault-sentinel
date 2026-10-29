@@ -19,7 +19,9 @@ class AddressIntelDetector(Detector):
         self.min_age_hours = float(cfg["min_address_age_hours"])
         self.new_address_score = float(cfg.get("new_address_score", 0.7))
         self.unavailable_score = float(cfg.get("unavailable_score", 0.55))
-        self.mixers = {a.lower() for a in cfg.get("mixer_addresses", [])} | load_list(policy, cfg.get("mixer_list_file"))
+        self.mixers = {a.lower() for a in cfg.get("mixer_addresses", [])} | load_list(
+            policy, cfg.get("mixer_list_file")
+        )
         self.denylist = {a.lower() for a in cfg.get("denylist", [])} | load_list(policy, cfg.get("denylist_file"))
         self.allowlist = {a.lower() for a in cfg.get("allowlist", [])} | load_list(policy, cfg.get("allowlist_file"))
 

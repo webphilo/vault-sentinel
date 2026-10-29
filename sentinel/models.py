@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -29,9 +29,9 @@ class WithdrawalRequest(BaseModel):
     source_wallet: str = Field(..., description="Exchange hot wallet that will sign")
     destination: str
     initiator: str = Field(..., description="Service or operator that created the request")
-    user_id: Optional[str] = None
+    user_id: str | None = None
     tokens_in_tx: int = Field(1, ge=1, description="Distinct assets moved by this tx (batch/multicall)")
-    memo: Optional[str] = None
+    memo: str | None = None
     created_at: datetime = Field(default_factory=utcnow)
 
     @field_validator("chain", "asset")
@@ -73,7 +73,7 @@ class Verdict(BaseModel):
     risk_score: float
     signals: list[Signal]
     breaker_tripped: bool = False
-    attestation: Optional[Attestation] = None
+    attestation: Attestation | None = None
     latency_ms: float = 0.0
     evaluated_at: datetime = Field(default_factory=utcnow)
 

@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Optional
 
 import httpx
 
@@ -22,14 +21,14 @@ CHAIN_IDS = {
 
 
 class EtherscanProvider(ChainDataProvider):
-    def __init__(self, chain: str, api_key: str, client: Optional[httpx.Client] = None):
+    def __init__(self, chain: str, api_key: str, client: httpx.Client | None = None):
         if chain not in CHAIN_IDS:
             raise ValueError(f"unsupported EVM chain: {chain}")
         self.chain_id = CHAIN_IDS[chain]
         self.api_key = api_key
         self.client = client or httpx.Client(timeout=4.0)
 
-    def _txlist(self, address: str, action: str) -> Optional[list]:
+    def _txlist(self, address: str, action: str) -> list | None:
         params = {
             "chainid": self.chain_id,
             "module": "account",

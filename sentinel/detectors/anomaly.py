@@ -11,9 +11,9 @@ from __future__ import annotations
 
 import logging
 import math
+from collections.abc import Iterable
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Iterable, Optional
 
 import numpy as np
 
@@ -40,8 +40,8 @@ def featurize(
     amount_usd: float,
     created_at: datetime,
     tokens_in_tx: int,
-    dest_age_hours: Optional[float],
-    wallet_share: Optional[float],
+    dest_age_hours: float | None,
+    wallet_share: float | None,
 ) -> np.ndarray:
     ts = created_at if created_at.tzinfo else created_at.replace(tzinfo=timezone.utc)
     hour = ts.hour + ts.minute / 60
@@ -124,7 +124,7 @@ class AnomalyDetector(Detector):
         h = self.store.hgetall(f"baseline:{wallet}")
         return int(h.get("n", 0)), float(h.get("mean", 0.0)), float(h.get("m2", 0.0))
 
-    def online_z(self, wallet: str, amount_usd: float) -> Optional[float]:
+    def online_z(self, wallet: str, amount_usd: float) -> float | None:
         n, mean, m2 = self._baseline(wallet)
         if n < self.min_samples:
             return None

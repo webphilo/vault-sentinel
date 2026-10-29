@@ -12,7 +12,7 @@ import hashlib
 import json
 import logging
 import time
-from typing import Any, Optional
+from typing import Any
 
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import serialization
@@ -50,7 +50,7 @@ def key_id(public_b64: str) -> str:
 
 
 class Attestor:
-    def __init__(self, private_key_b64: Optional[str], ttl_sec: int = 120):
+    def __init__(self, private_key_b64: str | None, ttl_sec: int = 120):
         if private_key_b64:
             self._key = Ed25519PrivateKey.from_private_bytes(base64.b64decode(private_key_b64))
         else:
@@ -83,8 +83,8 @@ class Attestor:
 def verify_attestation(
     att: Attestation | dict,
     public_key_b64: str,
-    req: Optional[WithdrawalRequest | dict] = None,
-    now: Optional[float] = None,
+    req: WithdrawalRequest | dict | None = None,
+    now: float | None = None,
 ) -> bool:
     """Verify signature, expiry, decision and (optionally) that it covers exactly this transaction."""
     if isinstance(att, dict):

@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Optional
 
 import httpx
 
@@ -10,7 +9,7 @@ from .base import AddressProfile, ChainDataProvider
 
 
 class SolanaRpcProvider(ChainDataProvider):
-    def __init__(self, rpc_url: str, client: Optional[httpx.Client] = None):
+    def __init__(self, rpc_url: str, client: httpx.Client | None = None):
         self.rpc_url = rpc_url
         self.client = client or httpx.Client(timeout=4.0)
 

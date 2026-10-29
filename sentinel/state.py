@@ -9,7 +9,6 @@ import threading
 import uuid
 from abc import ABC, abstractmethod
 from collections import defaultdict, deque
-from typing import Optional
 
 
 class StateStore(ABC):
@@ -33,7 +32,7 @@ class StateStore(ABC):
     @abstractmethod
     def hset(self, key: str, field: str, value: str) -> None: ...
     @abstractmethod
-    def hget(self, key: str, field: str) -> Optional[str]: ...
+    def hget(self, key: str, field: str) -> str | None: ...
     @abstractmethod
     def hdel(self, key: str, field: str) -> None: ...
     @abstractmethod
@@ -81,7 +80,7 @@ class MemoryStore(StateStore):
         with self._lock:
             self._h[key][field] = value
 
-    def hget(self, key: str, field: str) -> Optional[str]:
+    def hget(self, key: str, field: str) -> str | None:
         with self._lock:
             return self._h.get(key, {}).get(field)
 
@@ -132,7 +131,7 @@ class RedisStore(StateStore):
     def hset(self, key: str, field: str, value: str) -> None:
         self.r.hset(self._k(key), field, value)
 
-    def hget(self, key: str, field: str) -> Optional[str]:
+    def hget(self, key: str, field: str) -> str | None:
         return self.r.hget(self._k(key), field)
 
     def hdel(self, key: str, field: str) -> None:
@@ -145,7 +144,7 @@ class RedisStore(StateStore):
         self.r.delete(self._k(key))
 
 
-def make_store(url: Optional[str]) -> StateStore:
+def make_store(url: str | None) -> StateStore:
     if url and url.startswith(("redis://", "rediss://")):
         return RedisStore(url)
     return MemoryStore()

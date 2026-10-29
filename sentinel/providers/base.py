@@ -6,13 +6,12 @@ import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional
 
 
 @dataclass
 class AddressProfile:
     address: str
-    first_seen: Optional[datetime] = None
+    first_seen: datetime | None = None
     tx_count: int = 0
     funded_by: list[str] = field(default_factory=list)  # who sent the first funds/gas
     labels: set[str] = field(default_factory=set)       # "mixer", "sanctioned", "exchange", ...

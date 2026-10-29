@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import json
 import time
-from typing import Optional
 
 from .models import Verdict, WithdrawalRequest
 from .state import StateStore
@@ -16,7 +15,7 @@ class HoldQueue:
         self.required = int(cfg["approvals_required"])
         self.ttl = int(cfg["ttl_sec"])
 
-    def add(self, req: WithdrawalRequest, balance: Optional[float], verdict: Verdict) -> None:
+    def add(self, req: WithdrawalRequest, balance: float | None, verdict: Verdict) -> None:
         item = {
             "request": req.model_dump(mode="json"),
             "wallet_balance_usd": balance,
@@ -26,7 +25,7 @@ class HoldQueue:
         }
         self.store.hset("holds", req.request_id, json.dumps(item))
 
-    def _get(self, request_id: str) -> Optional[dict]:
+    def _get(self, request_id: str) -> dict | None:
         raw = self.store.hget("holds", request_id)
         if raw is None:
             return None
@@ -44,7 +43,7 @@ class HoldQueue:
                 out.append(item)
         return sorted(out, key=lambda i: i["created"])
 
-    def approve(self, request_id: str, operator: str) -> tuple[Optional[dict], bool]:
+    def approve(self, request_id: str, operator: str) -> tuple[dict | None, bool]:
         """Returns (item, fully_approved)."""
         item = self._get(request_id)
         if item is None:

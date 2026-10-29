@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Optional
 
 from .attestation import Attestor
 from .audit import AuditLog
@@ -47,8 +46,8 @@ class SentinelEngine:
         policy: dict,
         providers: ProviderRegistry,
         store: StateStore,
-        audit: Optional[AuditLog] = None,
-        attestor: Optional[Attestor] = None,
+        audit: AuditLog | None = None,
+        attestor: Attestor | None = None,
     ):
         self.policy = policy
         self.providers = providers
@@ -80,7 +79,7 @@ class SentinelEngine:
             log.exception("provider failure for %s", req.chain)
             return AddressProfile(address=req.destination, available=False)
 
-    def _run_detectors(self, ctx: Context, only: Optional[list[Detector]] = None) -> list[Signal]:
+    def _run_detectors(self, ctx: Context, only: list[Detector] | None = None) -> list[Signal]:
         signals: list[Signal] = []
         for det in only or self.detectors:
             try:
@@ -107,7 +106,7 @@ class SentinelEngine:
                 log.exception("on_allowed failed in %s", det.name)
         USD_ALLOWED.labels(ctx.request.chain).inc(ctx.request.amount_usd)
 
-    def _record(self, req: WithdrawalRequest, v: Verdict, event: str = "screen", actor: Optional[str] = None) -> None:
+    def _record(self, req: WithdrawalRequest, v: Verdict, event: str = "screen", actor: str | None = None) -> None:
         DECISIONS.labels(v.decision.value, req.chain).inc()
         for s in v.signals:
             SIGNALS.labels(s.detector, str(s.hard_block).lower()).inc()
@@ -124,7 +123,7 @@ class SentinelEngine:
             )
 
     # ------------------------------------------------------------------ public
-    def screen(self, req: WithdrawalRequest, wallet_balance_usd: Optional[float] = None) -> Verdict:
+    def screen(self, req: WithdrawalRequest, wallet_balance_usd: float | None = None) -> Verdict:
         t0 = time.perf_counter()
         now = time.time()
 
@@ -154,7 +153,7 @@ class SentinelEngine:
         self._record(req, v)
         return v
 
-    def approve_hold(self, request_id: str, operator: str) -> Optional[Verdict]:
+    def approve_hold(self, request_id: str, operator: str) -> Verdict | None:
         """Add an operator approval. Returns the final verdict once fully approved, else None.
 
         Raises KeyError if the hold does not exist or has expired.

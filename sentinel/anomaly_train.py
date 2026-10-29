@@ -6,9 +6,9 @@ Optional columns: tokens_in_tx, dest_age_hours, wallet_share
 from __future__ import annotations
 
 import csv
+from collections.abc import Iterator
 from datetime import datetime
 from pathlib import Path
-from typing import Iterator
 
 import numpy as np
 

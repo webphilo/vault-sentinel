@@ -7,8 +7,6 @@ official compliance / law-enforcement channel.
 """
 from __future__ import annotations
 
-from typing import Optional
-
 from ..models import WithdrawalRequest
 
 FREEZABLE = {
@@ -23,7 +21,7 @@ FREEZABLE = {
 
 
 def freeze_request_draft(req: WithdrawalRequest, exchange_name: str = "<EXCHANGE>",
-                         tx_hash: Optional[str] = None) -> Optional[dict]:
+                         tx_hash: str | None = None) -> dict | None:
     issuer = FREEZABLE.get(req.asset.upper())
     if not issuer:
         return None

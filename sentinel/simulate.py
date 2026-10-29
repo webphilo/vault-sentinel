@@ -13,7 +13,7 @@ CSV_FIELDS = ["request_id", "amount_usd", "created_at", "tokens_in_tx", "dest_ag
 
 def generate_history(n: int = 20_000, seed: int = 7) -> list[dict]:
     """Plausible retail + institutional withdrawal history (log-normal amounts, daily seasonality)."""
-    rng = random.Random(seed)
+    rng = random.Random(seed)  # noqa: S311 - synthetic data, not security-sensitive
     start = datetime.now(timezone.utc) - timedelta(days=90)
     rows = []
     for i in range(n):
