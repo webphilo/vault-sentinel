@@ -1,4 +1,4 @@
 # Security policy and detection logic need review from the security team.
-/config/              @<your-org>/wallet-security
-/sentinel/detectors/  @<your-org>/wallet-security
-/sentinel/attestation.py @<your-org>/wallet-security
+/config/              @webphilo
+/sentinel/detectors/  @webphilo
+/sentinel/attestation.py @webphilo

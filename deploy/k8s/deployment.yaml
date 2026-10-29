@@ -21,7 +21,7 @@ spec:
         seccompProfile: { type: RuntimeDefault }
       containers:
         - name: sentinel
-          image: ghcr.io/<your-name>/vault-sentinel:1.0.0
+          image: ghcr.io/webphilo/vault-sentinel:1.0.0
           ports: [{ containerPort: 8080, name: http }]
           envFrom:
             - secretRef: { name: vault-sentinel-secrets }

@@ -5,7 +5,7 @@
 ### AI-powered pre-signing firewall for crypto exchange hot wallets
 ### 암호화폐 거래소 핫월렛을 위한 AI 서명 전 방화벽
 
-[![CI](https://github.com/<your-name>/vault-sentinel/actions/workflows/ci.yml/badge.svg)](.github/workflows/ci.yml)
+[![CI](https://github.com/webphilo/vault-sentinel/actions/workflows/ci.yml/badge.svg)](.github/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110%2B-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![AI](https://img.shields.io/badge/AI-Isolation%20Forest-F7931E?logo=scikitlearn&logoColor=white)](sentinel/detectors/anomaly.py)
@@ -91,7 +91,7 @@ $ sentinel replay-incident
 ### 🚀 Quick start
 
 ```bash
-git clone https://github.com/<your-name>/vault-sentinel.git
+git clone https://github.com/webphilo/vault-sentinel.git
 cd vault-sentinel
 cp .env.example .env
 sentinel keygen >> .env          # or: make keygen
@@ -256,7 +256,7 @@ sentinel replay-incident
 ### 🚀 빠른 시작
 
 ```bash
-git clone https://github.com/<your-name>/vault-sentinel.git
+git clone https://github.com/webphilo/vault-sentinel.git
 cd vault-sentinel
 cp .env.example .env
 sentinel keygen >> .env          # 또는: make keygen
