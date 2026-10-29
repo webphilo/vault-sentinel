@@ -1,0 +1,4 @@
+# Security policy and detection logic need review from the security team.
+/config/              @webphilo
+/sentinel/detectors/  @webphilo
+/sentinel/attestation.py @webphilo
