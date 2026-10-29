@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vault-sentinel
+  namespace: wallet-security
+  labels: { app: vault-sentinel }
+spec:
+  replicas: 3
+  selector:
+    matchLabels: { app: vault-sentinel }
+  template:
+    metadata:
+      labels: { app: vault-sentinel }
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: sentinel
+          image: ghcr.io/<your-name>/vault-sentinel:1.0.0
+          ports: [{ containerPort: 8080, name: http }]
+          envFrom:
+            - secretRef: { name: vault-sentinel-secrets }
+          env:
+            - { name: SENTINEL_REDIS_URL, value: "redis://redis.wallet-security:6379/0" }
+            - { name: SENTINEL_AUDIT_DB, value: "/app/data/audit.db" }
+          volumeMounts:
+            - { name: policy, mountPath: /app/config, readOnly: true }
+            - { name: data, mountPath: /app/data }
+            - { name: tmp, mountPath: /tmp }
+          readinessProbe:
+            httpGet: { path: /ready, port: http }
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: { path: /health, port: http }
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 250m, memory: 512Mi }
+            limits: { cpu: "1", memory: 1Gi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+      volumes:
+        - name: policy
+          configMap: { name: vault-sentinel-policy }
+        # Each replica keeps its own hash-chained audit log. Ship it to WORM storage
+        # (e.g. S3 Object Lock) with your log pipeline, or run 1 replica on a PVC.
+        - name: data
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vault-sentinel
+  namespace: wallet-security
+spec:
+  selector: { app: vault-sentinel }
+  ports: [{ port: 8080, targetPort: http, name: http }]
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: vault-sentinel
+  namespace: wallet-security
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels: { app: vault-sentinel }

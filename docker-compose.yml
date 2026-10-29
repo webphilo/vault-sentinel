@@ -1,0 +1,36 @@
+services:
+  sentinel:
+    build: .
+    env_file: .env
+    environment:
+      SENTINEL_REDIS_URL: redis://redis:6379/0
+    ports:
+      - "127.0.0.1:8080:8080"     # internal only, never expose to the internet
+    volumes:
+      - ./config:/app/config:ro
+      - ./models:/app/models
+      - sentinel-data:/app/data
+    depends_on: [redis]
+    restart: unless-stopped
+    read_only: true
+    tmpfs: [/tmp]
+
+  redis:
+    image: redis:7.2-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes: [redis-data:/data]
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    volumes:
+      - ./deploy/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./deploy/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+    ports:
+      - "127.0.0.1:9090:9090"
+    depends_on: [sentinel]
+    restart: unless-stopped
+
+volumes:
+  sentinel-data:
+  redis-data:
