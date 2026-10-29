@@ -1,0 +1,2 @@
+# Addresses that must never receive funds (exploiters, sanctioned entities, scam clusters).
+# One lower-case address per line. Feed this from your analytics vendor.

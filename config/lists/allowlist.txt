@@ -1,0 +1,2 @@
+# Trusted destinations that skip address checks (your own cold wallets, verified counterparties).
+# Velocity limits still apply. One lower-case address per line.

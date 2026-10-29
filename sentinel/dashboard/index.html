@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VaultSentinel Console</title>
+<style>
+  :root {
+    --bg: #0b0f14; --panel: #121821; --line: #1f2a37; --text: #e6edf3; --muted: #8b98a5;
+    --allow: #2ea043; --hold: #d29922; --block: #f85149; --accent: #58a6ff;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 14px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { display: flex; align-items: center; gap: 12px; padding: 16px 24px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  header h1 { font-size: 18px; margin: 0; letter-spacing: .3px; }
+  header .sp { flex: 1; }
+  input, button { font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--line);
+                  border-radius: 8px; padding: 8px 12px; }
+  button { cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #031326; font-weight: 600; }
+  button.danger { border-color: var(--block); color: var(--block); }
+  button.ok { border-color: var(--allow); color: var(--allow); }
+  main { padding: 24px; display: grid; gap: 20px; max-width: 1280px; margin: 0 auto; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+  .tile { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .tile .k { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .6px; }
+  .tile .v { font-size: 28px; font-weight: 700; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  section { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  section h2 { font-size: 14px; margin: 0; padding: 12px 16px; border-bottom: 1px solid var(--line);
+               display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 10px 16px; border-bottom: 1px solid var(--line); vertical-align: top; white-space: nowrap; }
+  td.wrap { white-space: normal; min-width: 260px; }
+  th { color: var(--muted); font-weight: 500; font-size: 12px; }
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+  .ALLOW { background: rgba(46,160,67,.15); color: var(--allow); }
+  .HOLD { background: rgba(210,153,34,.15); color: var(--hold); }
+  .BLOCK { background: rgba(248,81,73,.15); color: var(--block); }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }
+  .muted { color: var(--muted); }
+  .empty { padding: 16px; color: var(--muted); }
+  .banner { background: rgba(248,81,73,.12); border: 1px solid var(--block); color: var(--block);
+            border-radius: 12px; padding: 12px 16px; font-weight: 600; display: none; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🛡️ VaultSentinel</h1>
+  <span class="muted" id="ver"></span>
+  <span class="sp"></span>
+  <input id="key" type="password" placeholder="Operator API key" autocomplete="off">
+  <button class="primary" id="connect">Connect</button>
+</header>
+
+<main>
+  <div class="banner" id="banner"></div>
+
+  <div class="tiles">
+    <div class="tile"><div class="k">Allowed · 24h</div><div class="v" id="t-allow">–</div></div>
+    <div class="tile"><div class="k">Held · 24h</div><div class="v" id="t-hold">–</div></div>
+    <div class="tile"><div class="k">Blocked · 24h</div><div class="v" id="t-block">–</div></div>
+    <div class="tile"><div class="k">Pending review</div><div class="v" id="t-pending">–</div></div>
+    <div class="tile"><div class="k">AI model</div><div class="v" id="t-ai" style="font-size:18px">–</div></div>
+  </div>
+
+  <section>
+    <h2>Pending review (HOLD)</h2>
+    <div class="scroll"><table><thead><tr><th>Request</th><th>Amount</th><th>Destination</th><th>Risk</th><th>Reasons</th><th>Approvals</th><th></th></tr></thead>
+    <tbody id="holds"></tbody></table></div>
+  </section>
+
+  <section>
+    <h2>Circuit breaker
+      <span class="row">
+        <input id="trip-wallet" placeholder="wallet address or __all__" class="mono">
+        <button class="danger" id="trip">Freeze</button>
+      </span>
+    </h2>
+    <div class="scroll"><table><thead><tr><th>Wallet</th><th>Since</th><th>Reason</th><th>Reset votes</th><th></th></tr></thead>
+    <tbody id="breaker"></tbody></table></div>
+  </section>
+
+  <section>
+    <h2>Recent decisions <span class="muted" id="chain"></span></h2>
+    <div class="scroll"><table><thead><tr><th>Time (UTC)</th><th>Decision</th><th>Request</th><th>Amount</th><th>Risk</th><th>Top reason</th></tr></thead>
+    <tbody id="audit"></tbody></table></div>
+  </section>
+</main>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  let KEY = "";
+  try { KEY = sessionStorage.getItem("vs_key") || ""; } catch (e) {}
+  $("key").value = KEY;
+
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const usd = (n) => "$" + Number(n || 0).toLocaleString("en-US", { maximumFractionDigits: 0 });
+  const short = (a) => a && a.length > 16 ? a.slice(0, 8) + "…" + a.slice(-6) : a;
+
+  async function api(path, opts = {}) {
+    const r = await fetch(path, { ...opts, headers: { "X-API-Key": KEY, "Content-Type": "application/json", ...(opts.headers || {}) } });
+    if (!r.ok) throw new Error((await r.text()) || r.status);
+    return r.json();
+  }
+
+  async function refresh() {
+    try {
+      const h = await fetch("/health").then((r) => r.json());
+      $("ver").textContent = "v" + h.version;
+    } catch (e) {}
+    if (!KEY) return;
+    try {
+      const [stats, holds, audit, verify] = await Promise.all([
+        api("/v1/stats"), api("/v1/holds"), api("/v1/audit?limit=50"), api("/v1/audit/verify"),
+      ]);
+      const d = stats.decisions || {};
+      $("t-allow").textContent = d.ALLOW || 0;
+      $("t-hold").textContent = d.HOLD || 0;
+      $("t-block").textContent = d.BLOCK || 0;
+      $("t-pending").textContent = stats.holds_pending;
+      $("t-ai").textContent = stats.ai_model_trained ? "trained" : "rules only";
+      $("chain").textContent = verify.ok ? "audit chain ✓ intact" : "⚠ audit chain broken at #" + verify.broken_at;
+
+      const tripped = Object.keys(stats.breaker || {});
+      $("banner").style.display = tripped.length ? "block" : "none";
+      $("banner").textContent = tripped.length ? "🧨 Circuit breaker active: " + tripped.map(short).join(", ") : "";
+
+      $("holds").innerHTML = holds.holds.length ? holds.holds.map((i) => {
+        const r = i.request, v = i.verdict;
+        return `<tr><td class="mono">${esc(r.request_id)}</td><td>${esc(r.amount)} ${esc(r.asset)}<div class="muted">${usd(r.amount_usd)}</div></td>
+          <td class="mono">${esc(short(r.destination))}</td><td>${v.risk_score.toFixed(2)}</td>
+          <td class="wrap">${v.signals.map((s) => esc(s.reason)).join("<br>")}</td><td>${esc(i.approvals.join(", ")) || "–"}</td>
+          <td><div class="row"><button class="ok" data-approve="${esc(r.request_id)}">Approve</button><button class="danger" data-reject="${esc(r.request_id)}">Reject</button></div></td></tr>`;
+      }).join("") : `<tr><td colspan="7" class="empty">Nothing waiting for review.</td></tr>`;
+
+      $("breaker").innerHTML = tripped.length ? tripped.map((w) => {
+        const b = stats.breaker[w];
+        return `<tr><td class="mono">${esc(w)}</td><td>${new Date(b.since * 1000).toISOString().slice(0, 19)}</td><td class="wrap">${esc(b.reason)}</td>
+          <td>${b.reset_votes.length}/${b.votes_required} ${esc(b.reset_votes.join(", "))}</td><td><button class="ok" data-reset="${esc(w)}">Vote to unfreeze</button></td></tr>`;
+      }).join("") : `<tr><td colspan="5" class="empty">All hot wallets operating normally.</td></tr>`;
+
+      $("audit").innerHTML = audit.events.filter((e) => e.decision).map((e) => {
+        const r = (e.payload.request || {}), v = (e.payload.verdict || {});
+        const top = (v.signals || []).slice().sort((a, b) => b.score - a.score)[0];
+        return `<tr><td class="mono">${esc(e.ts.slice(0, 19))}</td><td><span class="pill ${esc(e.decision)}">${esc(e.decision)}</span></td>
+          <td class="mono">${esc(e.request_id)}</td><td>${r.asset ? esc(r.amount) + " " + esc(r.asset) : "–"}</td>
+          <td>${e.risk != null ? Number(e.risk).toFixed(2) : "–"}</td><td class="wrap">${top ? esc(top.reason) : "–"}</td></tr>`;
+      }).join("") || `<tr><td colspan="6" class="empty">No decisions yet.</td></tr>`;
+    } catch (e) {
+      $("banner").style.display = "block";
+      $("banner").textContent = "Cannot load data: " + e.message;
+    }
+  }
+
+  document.addEventListener("click", async (ev) => {
+    const t = ev.target;
+    try {
+      if (t.dataset.approve) await api(`/v1/holds/${encodeURIComponent(t.dataset.approve)}/approve`, { method: "POST" });
+      else if (t.dataset.reject) await api(`/v1/holds/${encodeURIComponent(t.dataset.reject)}/reject`, { method: "POST" });
+      else if (t.dataset.reset) await api("/v1/breaker/reset", { method: "POST", body: JSON.stringify({ wallet: t.dataset.reset }) });
+      else return;
+      refresh();
+    } catch (e) { $("banner").style.display = "block"; $("banner").textContent = e.message; }
+  });
+
+  $("trip").onclick = async () => {
+    const w = $("trip-wallet").value.trim();
+    if (!w) return;
+    try { await api("/v1/breaker/trip", { method: "POST", body: JSON.stringify({ wallet: w, reason: "manual freeze from console" }) }); refresh(); }
+    catch (e) { $("banner").style.display = "block"; $("banner").textContent = e.message; }
+  };
+
+  $("connect").onclick = () => {
+    KEY = $("key").value.trim();
+    try { sessionStorage.setItem("vs_key", KEY); } catch (e) {}
+    refresh();
+  };
+
+  refresh();
+  setInterval(refresh, 5000);
+})();
+</script>
+</body>
+</html>
