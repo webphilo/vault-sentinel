@@ -1,0 +1,49 @@
+groups:
+  - name: vault-sentinel
+    rules:
+      - alert: SentinelCircuitBreakerTripped
+        expr: sentinel_breaker_tripped_wallets > 0
+        for: 0m
+        labels: { severity: critical }
+        annotations:
+          summary: "Hot wallet frozen by VaultSentinel circuit breaker"
+
+      - alert: SentinelBlockSpike
+        expr: sum(increase(sentinel_decisions_total{decision="BLOCK"}[5m])) > 3
+        labels: { severity: critical }
+        annotations:
+          summary: "More than 3 blocked withdrawals in 5 minutes"
+
+      - alert: SentinelLargeValueBlocked
+        expr: sum(increase(sentinel_usd_blocked_total[10m])) > 1000000
+        labels: { severity: critical }
+        annotations:
+          summary: "Over $1M of withdrawals blocked in 10 minutes"
+
+      - alert: SentinelHoldsPiling
+        expr: sentinel_holds_pending > 20
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "Manual review queue is growing"
+
+      - alert: SentinelColdRatioLow
+        expr: sentinel_cold_storage_ratio < 0.8
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "Cold storage ratio below 80%"
+
+      - alert: SentinelSlow
+        expr: histogram_quantile(0.99, sum(rate(sentinel_screen_latency_seconds_bucket[5m])) by (le)) > 1
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "p99 screening latency above 1s"
+
+      - alert: SentinelDown
+        expr: up{job="vault-sentinel"} == 0
+        for: 1m
+        labels: { severity: critical }
+        annotations:
+          summary: "VaultSentinel is down: withdrawals are failing closed"
