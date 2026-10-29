@@ -1,0 +1,73 @@
+# VaultSentinel security policy.
+# Starting values for a large exchange. Tune them to your own volumes.
+# Changes to this file should require review by at least two people (see CODEOWNERS).
+
+decision:
+  hold_threshold: 0.50          # combined risk >= 0.50 -> HOLD (manual approval)
+  block_threshold: 0.85         # combined risk >= 0.85 -> BLOCK
+  detector_error_score: 0.60    # a crashing detector counts as risk (fail-closed)
+
+velocity:
+  max_single_tx_usd: 2000000            # hard cap for one transaction
+  per_asset_max_single_tx_usd:          # optional per-asset overrides
+    BTC: 5000000
+    ETH: 3000000
+  max_tokens_per_tx: 3                  # 63 tokens in one tx = wallet sweep
+  max_share_of_wallet_per_tx: 0.10      # one tx may not move more than 10% of the hot wallet
+  wallet_windows:                       # per hot wallet
+    - { window_sec: 600,   max_usd: 5000000 }
+    - { window_sec: 3600,  max_usd: 20000000 }
+    - { window_sec: 86400, max_usd: 100000000 }
+  global_windows:                       # across ALL hot wallets
+    - { window_sec: 600,   max_usd: 15000000 }
+    - { window_sec: 3600,  max_usd: 50000000 }
+    - { window_sec: 86400, max_usd: 300000000 }
+
+address_intel:
+  min_address_age_hours: 72
+  new_address_score: 0.70
+  unavailable_score: 0.55
+  mixer_list_file: lists/mixers.txt
+  denylist_file: lists/denylist.txt
+  allowlist_file: lists/allowlist.txt
+  mixer_addresses: []
+  denylist: []
+  allowlist: []
+
+behavior:
+  trusted_initiators:                   # services allowed to create withdrawals
+    - withdrawal-service
+    - treasury-rebalancer
+    - otc-desk
+  unknown_initiator_hard_block: true
+  fan_in_window_sec: 600
+  fan_in_max_source_wallets: 2          # 2+ hot wallets -> same address within 10 min = BLOCK
+  fan_in_max_requests: 5
+  first_payout_review_usd: 250000
+  off_hours_utc: [15, 23]               # 00:00-08:00 KST
+  off_hours_review_usd: 500000
+
+anomaly:
+  model_path: models/isoforest.joblib   # relative to the project root
+  contamination: 0.01
+  score_threshold: 0.70
+  online_z_threshold: 4.0
+  online_min_samples: 50
+
+circuit_breaker:
+  trip_after_hard_blocks: 2             # per wallet within the window
+  global_trip_after_wallets: 2          # hard blocks on N distinct wallets -> freeze ALL wallets
+  window_sec: 900
+  reset_requires_approvals: 2           # four-eyes unfreeze
+
+holds:
+  approvals_required: 2
+  ttl_sec: 3600                         # unapproved holds expire (= rejected)
+
+attestation:
+  ttl_sec: 120                          # signer must use the approval within 2 minutes
+
+treasury:
+  # South Korea's Virtual Asset User Protection Act requires >= 80% of customer assets in cold storage.
+  min_cold_storage_ratio: 0.80
+  max_hot_wallet_usd: 500000000
